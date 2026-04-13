@@ -1,0 +1,17 @@
+<form id="filter-form" class="row g-2 align-items-center mb-2">
+  <div class="col-md-6">
+    {% csrf_token %} 
+    {{ name_form.name }}
+  </div>
+  <div class="col-md-auto">
+    <button type="button" id="filter-btn" class="btn btn-primary btn-sm">
+      Filtrar
+    </button>
+  </div>
+  <div class="col-md-auto">
+    <button type="button" id="clear-btn" class="btn btn-secondary btn-sm">
+      Limpiar
+    </button>
+  </div>
+</form>
+<div id="loading" style="display: none">Cargando...</div>

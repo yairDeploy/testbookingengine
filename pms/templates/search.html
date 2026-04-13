@@ -30,8 +30,9 @@
     <a href="{% url 'home' %}">Nueva búsqueda</a>
 </div>
 <h1>Habitaciones disponibles</h1>
-
+{% include "filter_name.html" %}
 <div id="rooms-accordion" class="">
+    
     {% for room in total_rooms %}
         
     <div class="card mb-3">
@@ -83,4 +84,15 @@
 {% for room in rooms %}
 
 {% endfor %}
+{% load static %}
+ <script>
+   // Variables globales para el script externo
+   const csrfToken = '{{ csrf_token }}';
+   const checkin = '{{ query.checkin }}';
+   const checkout = '{{ query.checkout }}';
+   const guests = '{{ query.guests }}';
+   const urlQuery = '{{ url_query }}';
+   const roomFilterUrl = '{% url "room_filter" %}';
+ </script>
+ <script src="{% static 'js/filter_room.js' %}"></script>
 {% endblock content%}
