@@ -4,6 +4,9 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import ensure_csrf_cookie
 
+from django.http import JsonResponse
+from pms.form_filters.name_form import NameForm
+
 from .form_dates import Ymd
 from .forms import *
 from .models import Room
@@ -81,7 +84,57 @@ class RoomSearchView(View):
         }
         return render(request, "search.html", context)
 
-
+class RoomFilterView(View):
+    def post(self, request):
+        query = request.POST.dict()
+        checkin = Ymd.Ymd(query['checkin'])
+        checkout = Ymd.Ymd(query['checkout'])
+        total_days = checkout - checkin
+        
+        filters = {'room_type__max_guests__gte': query['guests']}
+        if query.get('name_filter'):
+            filters['name__istartswith'] = query['name_filter']
+        
+        exclude = {
+            'booking__checkin__lte': query['checkout'],
+            'booking__checkout__gte': query['checkin'],
+            'booking__state__exact': "NEW"
+        }
+        
+        rooms = (Room.objects.filter(**filters).exclude(**exclude)
+                .annotate(total=total_days * F('room_type__price'))
+                .order_by("room_type__max_guests", "name"))
+        
+        total_rooms = (Room.objects.filter(**filters).exclude(**exclude)
+                    .values("room_type__name", "room_type")
+                    .annotate(total=Count('room_type')))
+        
+        # Preparar datos para JSON
+        rooms_data = []
+        for room in rooms:
+            rooms_data.append({
+                'id': room.id,
+                'name': room.name,
+                'room_type_id': room.room_type.id,
+                'room_type_name': room.room_type.name,
+                'max_guests': room.room_type.max_guests,
+                'price': float(room.room_type.price),
+                'total': float(room.total)
+            })
+        
+        total_rooms_data = []
+        for rt in total_rooms:
+            total_rooms_data.append({
+                'room_type_id': rt['room_type'],
+                'room_type_name': rt['room_type__name'],
+                'total': rt['total']
+            })
+        
+        return JsonResponse({
+            'rooms': rooms_data,
+            'total_rooms': total_rooms_data,
+            'total_days': total_days
+        })
 class HomeView(View):
     # renders home page with all the bookingings order by date of creation
     def get(self, request):
