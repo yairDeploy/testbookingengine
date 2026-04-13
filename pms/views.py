@@ -3,6 +3,7 @@ from django.shortcuts import render, redirect
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.shortcuts import get_object_or_404
 
 from .form_dates import Ymd
 from .forms import *
@@ -244,3 +245,51 @@ class RoomsView(View):
             'rooms': rooms
         }
         return render(request, "rooms.html", context)
+    
+class UpdateBookingView(View):
+    # renders the booking edition form
+    def get(self, request, pk):
+        booking = get_object_or_404(Booking, id=pk)
+        booking_form = BookingFormDates(prefix="booking", instance=booking)
+        
+        context = {
+            'booking_form': booking_form,
+            'booking': booking
+        }
+        return render(request, "update_booking.html", context)
+
+    # updates the booking form
+    @method_decorator(ensure_csrf_cookie)
+    def post(self, request, pk):
+        booking = get_object_or_404(Booking, id=pk)
+        booking_form = BookingFormDates(request.POST, prefix="booking", instance=booking)
+        
+        if booking_form.is_valid():
+            new_checkin = booking_form.cleaned_data['checkin']
+            new_checkout = booking_form.cleaned_data['checkout']
+            conflicting_bookings = Booking.objects.filter(
+                room=booking.room,
+                checkin__lt=new_checkout,
+                checkout__gt=new_checkin,
+                state="NEW"
+            ).exclude(id=booking.id)
+            
+            if conflicting_bookings.exists():
+                booking_form.add_error(None, 'No hay disponibilidad para las fechas seleccionadas')
+                context = {
+                    'booking_form': booking_form,
+                    'booking': booking
+                }
+                return render(request, "update_booking.html", context)
+            
+            booking.checkin = new_checkin
+            booking.checkout = new_checkout
+            booking.save()
+            return redirect("/")
+        
+        # If form is invalid, re-render with errors
+        context = {
+            'booking_form': booking_form,
+            'booking': booking
+        }
+        return render(request, "update_booking.html", context)

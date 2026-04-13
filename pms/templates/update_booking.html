@@ -1,0 +1,79 @@
+{% extends "main.html"%}
+
+{% block content %}
+<h1>Editar fechas de reserva</h1>
+<div class="card card-body mb-3">
+    <div class="row">
+        <div class="col">
+            Reserva: {{booking.code}}
+            {% if booking.state == "DEL" %}
+            <span class="tag tag-red">Cancelada</span>
+            {% elif booking.state == "NEW" %}
+            <span class="tag tag-green">Confirmada</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <p>Reserva para {{booking.guest.first_name}} {{booking.guest.last_name}}</p>
+            <p>Habitación: {{booking.room.name}}</p>
+            <p>Fechas actuales: {{booking.checkin}} - {{booking.checkout}}</p>
+        </div>
+    </div>
+</div>
+<form action="" method="post">
+
+    {% csrf_token%}
+    {% if booking_form.non_field_errors %}
+        <div class="alert alert-danger">
+            {% for error in booking_form.non_field_errors %}
+                {{ error }}
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% for field in booking_form %}
+    <div class="row">
+        {% if field.errors %}
+        <div class="col">
+            <div class="alert alert-danger">
+                {% for error in field.errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        <div class="col-md-2">
+            {{field.label_tag}}
+        </div>
+        <div class="col">
+            {{field}}
+        </div>
+    </div>
+    {% endfor %}
+    <div class="row">
+        <div class="col"><span>Días: </span><span id="total-days"></span></div>
+    </div>
+    <div>
+        <a class="btn btn-outline-primary" href="{% url 'home' %}">Volver</a>
+        <button class="btn btn-primary" type="submit">Guardar datos</button>
+    </div>
+</form>
+<script>
+    
+    function onDateUpdate(){
+        const date1=new Date(document.querySelector("#id_checkin").value)
+        const date2=new Date(document.querySelector("#id_checkout").value)
+        console.log((date2.getTime() - date1.getTime())/(1000*3600*24));
+        document.querySelector("#total-days").innerHTML=(date2.getTime() - date1.getTime())/(1000*3600*24)
+
+    }
+    document.querySelector("#id_checkout").addEventListener("change",(e)=>{
+        onDateUpdate()
+    });
+    document.querySelector("#id_checkin").addEventListener("change",(e)=>{
+        onDateUpdate()
+    });
+    onDateUpdate();
+</script>
+
+{% endblock content %}
